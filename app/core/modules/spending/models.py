@@ -1,8 +1,18 @@
 from tortoise import Model, fields
 
 
+class User(Model):
+    user_id = fields.IntField(unique=True)
+    username = fields.CharField(max_length=255, default='')
+    created_at = fields.DatetimeField(auto_now_add=True)
+    updated_at = fields.DatetimeField(auto_now_add=True)
+
+    class Meta:
+        table = "users"
+
+
 class Expense(Model):
-    telegram_user_id = fields.IntField()
+    user = fields.ForeignKeyField('models.User')
     amount = fields.FloatField()
     currency = fields.CharField(max_length=16)
     category = fields.IntField()
@@ -12,5 +22,5 @@ class Expense(Model):
     class Meta:
         table = "expenses"
         indexes = (
-            ("telegram_user_id", "category"),
+            ("user_id", "category"),
         )
