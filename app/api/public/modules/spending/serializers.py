@@ -54,17 +54,18 @@ class ExpenseResponse(BaseModel):
     transaction_date: Optional[datetime]
 
 
-class PaginationQueryData(BaseModel):
+class Pagination(BaseModel):
     from_id: Optional[int]
     limit: Optional[int]
 
 
-class ExpensesQueryFilters(PaginationQueryData):
+class ExpensesQueryFilters(BaseModel):
     transaction_date_from: Optional[datetime]
     transaction_date_to: Optional[datetime]
 
 
 class ExpenseData(BaseModel):
+    id: int
     currency: str
     amount: float
     category: int

@@ -1,14 +1,18 @@
-import jwt as jwt
-from fastapi import Depends, HTTPException
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from starlette import status
+import hashlib
+import hmac
 
+from app.core.config import BOT_TOKEN
+from app.core.modules.spending.models import User
+from fastapi import Depends, HTTPException
+from pydantic import BaseModel
+from starlette import status
 from starlette.requests import Request
 
-from app.core.modules.spending.models import User
 
-http_bearer = HTTPBearer(auto_error=False)
-SECRET_KEY = 'your-secret-key'
+class Credentials(BaseModel):
+    data_check_string: str
+    received_hash: str
+    telegram_user_id: int
 
 
 class AuthenticationFailed(HTTPException):
@@ -18,31 +22,31 @@ class AuthenticationFailed(HTTPException):
         super().__init__(status_code=status_code, detail=detail)
 
 
-def decode_token(token: str) -> dict:
-    payload = jwt.decode(
-        jwt=token,
-        key=SECRET_KEY,
-        verify=True,
-        algorithms=['HS256'],
-        options={
-            'verify_exp': True,
-        },
-    )
-    return payload
+def verify_telegram_data(data_check_string: str, received_hash: str):
+    # Calculate the HMAC-SHA256 hash
+    calculated_hash = hmac.new(BOT_TOKEN.encode(), data_check_string.encode(), hashlib.sha256).hexdigest()
+
+    # Compare the calculated hash with the received hash
+    if calculated_hash == received_hash:
+        return True
+    else:
+        return False
 
 
-async def user_auth_check(request: Request, credentials: HTTPAuthorizationCredentials = Depends(http_bearer)) -> User:
+async def user_auth_check(request: Request, credentials: Credentials = Depends()) -> User:
     if not credentials:
         raise AuthenticationFailed
-    try:
-        payload = decode_token(token=credentials.credentials)
-    except Exception as e:
-        raise AuthenticationFailed(str(e))
 
-    user_id = payload["user_id"]
+    if not verify_telegram_data(
+            data_check_string=credentials.data_check_string,
+            received_hash=credentials.received_hash,
+    ):
+        raise AuthenticationFailed("invalid credentials")
+
+    user_id = credentials.telegram_user_id
     user = await User.filter(user_id=user_id).first()
 
     if not user:
-        raise AuthenticationFailed
+        raise AuthenticationFailed("user not found")
 
     return user

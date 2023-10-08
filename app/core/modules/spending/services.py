@@ -1,11 +1,11 @@
 from datetime import datetime
 from typing import List, Optional
 
+from app.core.modules.spending.constants import (CURRENCIES,
+                                                 DISPLAY_EXPENSE_CATEGORIES)
+from app.core.modules.spending.models import Expense, User
 from tortoise.functions import Sum
 from tortoise.timezone import now
-
-from app.core.modules.spending.constants import DISPLAY_EXPENSE_CATEGORIES, CURRENCIES, EXPENSE_CATEGORY_OTHERS
-from app.core.modules.spending.models import Expense, User
 
 
 async def create_expense(user: User, amount: float, currency: str, category: str, transaction_date: datetime):
@@ -28,7 +28,14 @@ async def get_expense(user: User, expense_id: int, ) -> Optional[Expense]:
     return expense
 
 
-async def update_expense(user: User, expense_id: int, currency: str, amount: float, category: str):
+async def update_expense(
+        user: User,
+        expense_id: int,
+        currency: str,
+        amount: float,
+        category: str,
+        transaction_date: datetime,
+):
     update_data = {}
     if currency is not None:
         update_data['currency'] = currency
@@ -36,6 +43,10 @@ async def update_expense(user: User, expense_id: int, currency: str, amount: flo
         update_data['amount'] = amount
     if category is not None:
         update_data['category'] = category
+
+    if transaction_date is not None:
+        update_data['transaction_date'] = transaction_date
+
     await Expense.filter(id=expense_id, user=user).update(**update_data)
 
 
@@ -57,7 +68,7 @@ async def get_expenses(
     expenses_query = Expense.filter(user=user)
 
     if from_id:
-        expenses_query = expenses_query.filter(pk__lte=from_id)
+        expenses_query = expenses_query.filter(pk__lte=from_id).order_by('-id')
 
     if transaction_date_from:
         expenses_query = expenses_query.filter(transaction_date__gte=transaction_date_from)
@@ -66,7 +77,7 @@ async def get_expenses(
         expenses_query = expenses_query.filter(transaction_date__lte=transaction_date_to)
 
     if limit:
-        expenses_query = expenses_query.limit(limit)
+        expenses_query = expenses_query.limit(limit + 1)
 
     expenses = await expenses_query
 
@@ -74,6 +85,7 @@ async def get_expenses(
 
     for expense in expenses:
         result.append({
+            'id': expense.pk,
             'currency': expense.currency,
             'amount': expense.amount,
             'category': expense.category,
@@ -86,13 +98,13 @@ async def get_expenses(
     return result
 
 
-def get_next_id(messages: list, limit: int):
-    if len(messages) == limit:
-        next_id = messages[-1]["id"]
-        messages = messages[:-1]
+def get_last_expense_id(expenses: list, limit: int):
+    if limit and len(expenses) == limit + 1:
+        last_id = expenses[-1]["id"]
+        expenses = expenses[:-1]
     else:
-        next_id = None
-    return messages, next_id
+        last_id = None
+    return expenses, last_id
 
 
 async def get_statistics(user: User):
