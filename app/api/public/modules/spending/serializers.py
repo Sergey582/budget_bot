@@ -51,7 +51,7 @@ class ExpenseResponse(BaseModel):
     display_category: str
     created_at: datetime
     updated_at: datetime
-    transaction_date: datetime
+    transaction_date: Optional[datetime]
 
 
 class PaginationQueryData(BaseModel):
