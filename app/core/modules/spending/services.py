@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 
 from tortoise.functions import Sum
@@ -7,12 +8,13 @@ from app.core.modules.spending.constants import DISPLAY_EXPENSE_CATEGORIES, CURR
 from app.core.modules.spending.models import Expense, User
 
 
-async def create_expense(user: User, amount: float, currency: str, category: str):
+async def create_expense(user: User, amount: float, currency: str, category: str, transaction_date: datetime):
     await Expense.create(
         user=user,
         amount=amount,
         currency=currency,
         category=category,
+        transaction_date=transaction_date,
         updated_at=now(),
         created_at=now(),
     )
@@ -45,14 +47,27 @@ async def delete_expense(user: User, expense_id: int) -> Expense:
     await Expense.filter(id=expense_id, user=user).delete()
 
 
-async def get_expenses(user: User, from_id: int, limit: int) -> List[dict]:
+async def get_expenses(
+        user: User,
+        from_id: int,
+        limit: int,
+        transaction_date_from: datetime,
+        transaction_date_to: datetime,
+) -> List[dict]:
     expenses_query = Expense.filter(user=user)
 
     if from_id:
         expenses_query = expenses_query.filter(pk__lte=from_id)
 
+    if transaction_date_from:
+        expenses_query = expenses_query.filter(transaction_date__gte=transaction_date_from)
+
+    if transaction_date_to:
+        expenses_query = expenses_query.filter(transaction_date__lte=transaction_date_to)
+
     if limit:
         expenses_query = expenses_query.limit(limit)
+
     expenses = await expenses_query
 
     result = []
@@ -63,6 +78,7 @@ async def get_expenses(user: User, from_id: int, limit: int) -> List[dict]:
             'amount': expense.amount,
             'category': expense.category,
             'display_category': get_display_category(expense.category),
+            'transaction_date': expense.transaction_date,
             'created_at': expense.created_at,
             'updated_at': expense.updated_at,
         })

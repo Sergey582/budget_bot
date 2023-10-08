@@ -1,11 +1,13 @@
 from app.api.public.modules.spending.serializers import (
     CategoriesStatisticsData, CreateSpendingRequest, ExpenseResponse,
-    ExpensesListData, PaginationQueryData, UpdateExpenseRequest, CategoriedListData, CurrenciesListData)
+    ExpensesListData, PaginationQueryData, UpdateExpenseRequest, CategoriedListData, CurrenciesListData,
+    ExpensesQueryFilters)
 from app.core.modules.spending.models import User
 from app.core.modules.spending.services import (create_expense, delete_expense,
                                                 get_expense, get_expenses,
                                                 get_next_id, get_statistics,
-                                                update_expense, get_all_categories, get_all_currencies)
+                                                update_expense, get_all_categories, get_all_currencies,
+                                                get_display_category)
 from app.core.modules.users.auth import user_auth_check
 from fastapi import APIRouter, Depends, HTTPException
 from starlette import status
@@ -58,6 +60,7 @@ async def router_create_expense(
         amount=request_data.amount,
         currency=request_data.currency,
         category=request_data.category,
+        transaction_date=request_data.transaction_date,
     )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -80,6 +83,8 @@ async def router_get_expense_by_id(
         currency=expense.currency,
         amount=expense.amount,
         category=expense.category,
+        display_category=get_display_category(expense.category),
+        transaction_date=expense.transaction_date,
         created_at=expense.created_at,
         updated_at=expense.updated_at,
     )
@@ -129,15 +134,17 @@ async def router_delete_expense(
     status_code=status.HTTP_200_OK,
 )
 async def router_get_expenses(
-        pagination: PaginationQueryData = Depends(),
+        filters: ExpensesQueryFilters = Depends(),
         user: User = Depends(user_auth_check),
 ):
-    limit = pagination.limit + 1
+    limit = filters.limit + 1
 
     messages = await get_expenses(
         user=user,
-        from_id=pagination.from_id,
+        from_id=filters.from_id,
         limit=limit,
+        transaction_date_from=filters.transaction_date_from,
+        transaction_date_to=filters.transaction_date_to,
     )
 
     messages, next_id = get_next_id(messages, limit)

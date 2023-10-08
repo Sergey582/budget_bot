@@ -16,6 +16,7 @@ class Expense(Model):
     amount = fields.FloatField()
     currency = fields.CharField(max_length=16)
     category = fields.IntField()
+    transaction_date = fields.DatetimeField(default=None)
     updated_at = fields.DatetimeField()
     created_at = fields.DatetimeField()
 
