@@ -22,15 +22,11 @@ class AuthenticationFailed(HTTPException):
         super().__init__(status_code=status_code, detail=detail)
 
 
-def verify_telegram_data(data_check_string: str, received_hash: str):
-    # Calculate the HMAC-SHA256 hash
-    calculated_hash = hmac.new(BOT_TOKEN.encode(), data_check_string.encode(), hashlib.sha256).hexdigest()
-
-    # Compare the calculated hash with the received hash
-    if calculated_hash == received_hash:
-        return True
-    else:
-        return False
+def verify_telegram_data(data_check_string: str, received_hash: str) -> bool:
+    secret_key = hashlib.sha256(BOT_TOKEN.encode('utf-8'))
+    message = data_check_string.encode('utf-8')
+    generated_hash = hmac.new(secret_key.digest(), message, hashlib.sha256).hexdigest()
+    return generated_hash == received_hash
 
 
 async def user_auth_check(request: Request, credentials: Credentials = Depends()) -> User:
