@@ -1,9 +1,4 @@
-from typing import List, Optional
-
-from tortoise.functions import Sum
-from tortoise.timezone import now
-
-from app.core.modules.spending.models import Expense, User
+from app.core.modules.spending.models import User
 
 
 async def create_user(user_id: int, username: str):

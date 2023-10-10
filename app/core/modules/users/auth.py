@@ -33,16 +33,17 @@ async def user_auth_check(request: Request, credentials: Credentials = Depends()
     if not credentials:
         raise AuthenticationFailed
 
-    # if not verify_telegram_data(
-    #         data_check_string=credentials.data_check_string,
-    #         received_hash=credentials.received_hash,
-    # ):
-    #     raise AuthenticationFailed("invalid credentials")
-    #
+    if not verify_telegram_data(
+            data_check_string=credentials.data_check_string,
+            received_hash=credentials.received_hash,
+    ):
+        raise AuthenticationFailed("invalid credentials")
+
     user_id = credentials.telegram_user_id
     user = await User.filter(user_id=user_id).first()
 
     if not user:
-        raise AuthenticationFailed("user not found")
+        user = User(user_id=user_id)
+        await user.save()
 
     return user

@@ -1,8 +1,7 @@
 import telebot
+from app.core.config import BOT_MINI_APP_URL, BOT_TOKEN
 from telebot import types
 from telebot.types import WebAppInfo
-
-from app.core.config import BOT_TOKEN
 
 bot = telebot.TeleBot(BOT_TOKEN, parse_mode=None)
 
@@ -13,7 +12,7 @@ def handle_text_messages(message):
 
     button = types.InlineKeyboardButton(
         "Add spending",
-        web_app=WebAppInfo(url="https://sergey582.github.io/budget_bot/"),
+        web_app=WebAppInfo(url=BOT_MINI_APP_URL),
     )
 
     markup.add(button)
