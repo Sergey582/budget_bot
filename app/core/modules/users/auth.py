@@ -42,7 +42,7 @@ async def user_auth_check(request: Request, credentials: Credentials = Depends()
     user_id = credentials.telegram_user_id
     user = await User.filter(user_id=user_id).first()
 
-    if not user:
+    if user is None:
         user = User(user_id=user_id)
         await user.save()
 
